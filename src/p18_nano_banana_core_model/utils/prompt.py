@@ -22,11 +22,11 @@ def read_prompt_file_cleaned(path: str | Path) -> str:
 
 def add_do_not_move_guardrails(prompt: str) -> str:
     guard = (
-        "Important: Do not move, resize, rotate, or alter the product. "
+        "Important: Do not move, resize, rotate, or alter the product, even if it appears too big for the picture. "
         "Do not add object on the product. "
         "Do not add object in front of the product. "
         "Keep the product exactly at the same coordinates and size. "
-        "Only generate the background scene around it. "
+        # "Only generate the background scene around it. "
     )
     if prompt:
         return f"{prompt.strip()}\n\n{guard}"

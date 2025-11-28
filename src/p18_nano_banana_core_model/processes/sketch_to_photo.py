@@ -17,7 +17,7 @@ def run_sketch_to_photo(
     *,
     prefer_rewritten: bool = True,
     sketch_prompt_prefix: str = (
-        "Take this product and create a sketch/line-art of the following scene: "
+        "Fill this image with a sketch/line-art of the following scene:\n"
     ),
     photo_prompt: str = (
         "Make this sketch photorealistic. Keep exactly the same scene and layout; do not move any elements."
