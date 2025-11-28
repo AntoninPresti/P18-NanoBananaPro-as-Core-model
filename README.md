@@ -1,0 +1,79 @@
+### p18-nano-banana-core-model — R&D harness for Nano Banana Pro (Gemini 3.0 Pro) background generation
+
+This repository provides a lightweight, reproducible environment to prototype outpainting/backdrop generation around a fixed product packshot. It is designed to compare prompting strategies and small process pipelines against Google GenAI image models (Imagen 3) while using Gemini 3.0 Pro (aka “Nano Banana Pro”) to help with prompt authoring if needed.
+
+What you get:
+- Dataset loader targeting `data/NBpro_TrainSet/`
+- Prompt cleaning/rewriting utilities (removes bracketed instructions `[like this]`)
+- A minimal Google GenAI client wrapper for image generation and editing (Imagen 3)
+- Three pluggable processes, each ensuring the product packshot remains fixed in-place:
+  1) Simple Prompt (masked outpaint) — direct prompt with “do-not-move” guardrails
+  2) Sketch → Photoreal — first generate a sketch background, then convert to photo
+  3) Masked Outpaint — explicit mask to generate only around the packshot
+- Streamlit UI with per-process pages and a comparison page
+
+Important: this project does not run a backend API. Instead, it provides a pure-Python function `outpaint_generation()` mirroring your production endpoint signature to make local experiments easy. Streamlit pages call this function and the provided processes.
+
+Note on models and naming:
+- Per latest Google GenAI guidance for Gemini 3 image generation, this project uses the Gemini image model `gemini-3-pro-image-preview` via the Python SDK (`client.models.generate_content`).
+- Calls are made with `response_modalities=['IMAGE']` and an `ImageConfig` derived from your requested canvas size (aspect ratio and 1K/2K/4K image size buckets).
+- For edit/outpaint, we pass the prompt plus the base canvas (packshot-in-place) image, and optionally the mask image, as additional parts in `contents`.
+
+Important: We previously referenced Imagen 3 model IDs; the code now enforces `gemini-3-pro-image-preview` as required in the official docs: https://ai.google.dev/gemini-api/docs/image-generation#gemini-3-capabilities
+
+Quickstart
+1) Requirements
+- Python 3.12+
+- Google GenAI API key with access to Imagen 3 models
+
+2) Install
+```
+poetry install
+```
+
+3) Configure credentials
+Set `GOOGLE_API_KEY` in your environment or in a `.env` file at the project root:
+```
+GOOGLE_API_KEY=your_api_key_here
+```
+
+4) Run the Streamlit UI
+```
+poetry run streamlit run Home.py
+```
+
+Dataset layout (expected)
+- `data/NBpro_TrainSet/0_Packshots/` — packshot PNGs (preferably with alpha)
+- `data/NBpro_TrainSet/0_Packshots Config/` — JSON configs (same stem) containing geometry and the `packshot_url` (remote URL is supported)
+- `data/NBpro_TrainSet/0_Prompts_original/` — client prompts with potential bracketed notes (we strip anything in `[square brackets]`)
+- `data/NBpro_TrainSet/0_Prompts/` — prompts rewritten for production model (we also strip `[square brackets]`)
+- `data/NBpro_TrainSet/0_Original generations/` — reference outputs
+
+How outpainting is enforced
+- We construct a canvas of the generation size.
+- The packshot is placed at `(packshot_top_left_pos_x, packshot_top_left_pos_y)` with dimensions `(packshot_width, packshot_height)`.
+- A mask is built so the model edits only the background area (protecting the packshot region), and then we re-paste the original packshot as a final step to ensure exact placement.
+
+Processes provided
+1) Simple Prompt (masked outpaint)
+   - Takes the dataset prompt and adds guardrail sentences such as “do not move the product; keep it fixed in the exact position.”
+   - Runs Imagen Edit with a mask that protects the packshot region.
+
+2) Sketch → Photoreal
+   - Step 1: Generate a “sketchy/line-art” background around the fixed packshot.
+   - Step 2: Convert that sketch background into a photorealistic scene without moving elements.
+
+3) Masked Outpaint (explicit)
+   - Like (1) but exposes more parameters around mask softness, background fill, and CFG/guidance.
+
+Development notes
+- The Google GenAI client wrapper is in `src/p18_nano_banana_core_model/genai_client.py` (uses `gemini-3-pro-image-preview`).
+- Process functions live in `src/p18_nano_banana_core_model/processes/` and return `ProcessResult` with the generated PIL Image and metadata.
+- Streamlit pages are in `pages/`; `Home.py` is the app entry point.
+
+Troubleshooting
+- If you don’t see any generations, ensure your API key has Imagen 3 access. The UI will display a warning if `GOOGLE_API_KEY` is missing; in that case, it will show dataset reference images instead of calling the API.
+- Mask semantics can vary. By default, white in the mask means “editable region” and black means “protected.” If your edits look inverted, toggle the `invert_mask` option in the process parameters.
+
+License
+Internal R&D. © presti.ai
