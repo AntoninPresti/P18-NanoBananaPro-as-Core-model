@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import io
 import os
-from typing import Optional, Tuple, Dict, Any, List
+from typing import Any, Dict, List, Optional, Tuple
 
-import streamlit
 from google.genai.types import GenerateContentResponse
 from PIL import Image
 
@@ -113,7 +111,9 @@ def generate_image(
     size: Tuple[int, int] = (1024, 1024),
     model: str = GEMINI_IMAGE_MODEL,
     seed: Optional[int] = None,
-    safety_filter_level: Optional[str] = None,  # unused in this path; kept for API compat
+    safety_filter_level: Optional[
+        str
+    ] = None,  # unused in this path; kept for API compat
     extra: Optional[Dict[str, Any]] = None,
 ) -> Image.Image:
     """Text-to-image generation using Gemini 3 Pro Image Preview.
@@ -157,9 +157,8 @@ def edit_image(
     mask: Optional[Image.Image],
     prompt: str,
     size: Optional[Tuple[int, int]] = None,
-    model: str = GEMINI_IMAGE_MODEL,
     seed: Optional[int] = None,
-    negative_prompt: Optional[str] = None,  # not directly supported; fold into prompt
+    negative_prompt: Optional[str] = None,
     extra: Optional[Dict[str, Any]] = None,
 ) -> Image.Image:
     """Image edit/outpaint using Gemini 3 Pro Image Preview.

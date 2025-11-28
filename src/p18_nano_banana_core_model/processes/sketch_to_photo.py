@@ -4,20 +4,28 @@ from typing import Optional
 
 from PIL import Image
 
-from ..types import DatasetItem, ProcessResult, OutpaintModel
-from ..utils.data import get_prompt_for_item
-from ..utils.prompt import strip_square_brackets, add_do_not_move_guardrails
-from ..image_utils import load_image, ensure_size, make_outpaint_mask, paste_packshot
 from ..genai_client import edit_image
+from ..image_utils import ensure_size, load_image, make_outpaint_mask, paste_packshot
+from ..types import DatasetItem, ProcessResult
+from ..utils.data import get_prompt_for_item
+from ..utils.prompt import add_do_not_move_guardrails, strip_square_brackets
 from ..utils.saver import save_generation
 
 
-def run_sketch_to_photo(item: DatasetItem, *, prefer_rewritten: bool = True, sketch_prompt_prefix: str = (
+def run_sketch_to_photo(
+    item: DatasetItem,
+    *,
+    prefer_rewritten: bool = True,
+    sketch_prompt_prefix: str = (
         "Take this product and create a sketch/line-art of the following scene: "
-), photo_prompt: str = (
+    ),
+    photo_prompt: str = (
         "Make this sketch photorealistic. Keep exactly the same scene and layout; do not move any elements."
-), negative_prompt: Optional[str] = None, model_edit: OutpaintModel = OutpaintModel.IMAGEN_EDIT,
-                        seed: Optional[int] = None, mask_feather: int = 6) -> ProcessResult:
+    ),
+    negative_prompt: Optional[str] = None,
+    seed: Optional[int] = None,
+    mask_feather: int = 6,
+) -> ProcessResult:
     """Process 2 — Two-step: sketch around fixed product, then photorealistic render.
 
     Both steps use the same protected packshot mask. The second step converts
@@ -40,7 +48,9 @@ def run_sketch_to_photo(item: DatasetItem, *, prefer_rewritten: bool = True, ske
     pack = ensure_size(pack, pack_wh)
     canvas.paste(pack, pack_xy, pack)
 
-    mask = make_outpaint_mask(size, pack_xy, pack_wh, feather=mask_feather, invert=False)
+    mask = make_outpaint_mask(
+        size, pack_xy, pack_wh, feather=mask_feather, invert=False
+    )
 
     # Step 1: Sketch background generation
     sketch_img = edit_image(
@@ -48,7 +58,6 @@ def run_sketch_to_photo(item: DatasetItem, *, prefer_rewritten: bool = True, ske
         mask=mask,
         prompt=step1_prompt,
         size=size,
-        model=str(model_edit),
         seed=seed if seed is not None else cfg.seed,
         negative_prompt=negative_prompt or cfg.negative_prompt,
     )
@@ -60,7 +69,6 @@ def run_sketch_to_photo(item: DatasetItem, *, prefer_rewritten: bool = True, ske
         mask=mask,
         prompt=step2_prompt,
         size=size,
-        model=str(model_edit),
         seed=seed if seed is not None else cfg.seed,
         negative_prompt=negative_prompt or cfg.negative_prompt,
     )
@@ -85,7 +93,6 @@ def run_sketch_to_photo(item: DatasetItem, *, prefer_rewritten: bool = True, ske
             "prefer_rewritten": prefer_rewritten,
             "mask_feather": mask_feather,
             "negative_prompt": negative_prompt or cfg.negative_prompt,
-            "model": str(model_edit),
             "using_mask": True,
             "sketch_prompt_prefix": sketch_prompt_prefix,
             "photo_prompt": photo_prompt,

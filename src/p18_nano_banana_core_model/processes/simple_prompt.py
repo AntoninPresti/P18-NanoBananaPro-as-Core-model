@@ -1,19 +1,14 @@
 from __future__ import annotations
 
-from typing import Optional, Dict, Any
+from typing import Optional
 
 from PIL import Image
 
-from ..types import DatasetItem, ProcessResult, OutpaintModel
+from ..genai_client import edit_image
+from ..image_utils import ensure_size, load_image, make_outpaint_mask, paste_packshot
+from ..types import DatasetItem, ProcessResult
 from ..utils.data import get_prompt_for_item
 from ..utils.prompt import add_do_not_move_guardrails
-from ..image_utils import (
-    load_image,
-    ensure_size,
-    make_outpaint_mask,
-    paste_packshot,
-)
-from ..genai_client import edit_image
 from ..utils.saver import save_generation
 
 
@@ -24,12 +19,16 @@ def run_simple_prompt(
     add_guardrails_text: bool = True,
     extra_guardrails: Optional[str] = None,
     negative_prompt: Optional[str] = None,
-    model: OutpaintModel = OutpaintModel.IMAGEN_EDIT,
     seed: Optional[int] = None,
 ) -> ProcessResult:
     """Process 1 — Simple prompt + anti-drift guardrails, masked outpaint via Imagen Edit."""
     prompt = get_prompt_for_item(item, prefer_rewritten=prefer_rewritten)
     if add_guardrails_text:
+        sketch_prompt_prefix: str = (
+            "Fill the white space around this product to create the following scene: "
+        )
+
+        prompt = f"{sketch_prompt_prefix.strip()}\n{prompt}"
         prompt = add_do_not_move_guardrails(prompt)
     if extra_guardrails:
         prompt = f"{prompt}\n\n{extra_guardrails.strip()}"
@@ -54,7 +53,6 @@ def run_simple_prompt(
         mask=mask,
         prompt=prompt,
         size=size,
-        model=str(model),
         seed=seed if seed is not None else cfg.seed,
         negative_prompt=negative_prompt or cfg.negative_prompt,
     )
@@ -79,7 +77,6 @@ def run_simple_prompt(
             "prefer_rewritten": prefer_rewritten,
             "extra_guardrails": extra_guardrails,
             "negative_prompt": negative_prompt or cfg.negative_prompt,
-            "model": str(model),
             "using_mask": True,
         },
     )

@@ -1,6 +1,5 @@
-
 from .outpaint import outpaint_generation
-from .types import OutpaintModel, DatasetItem, PackshotConfig
+from .types import DatasetItem, PackshotConfig
 from .processes import (
     run_simple_prompt,
     run_masked_outpaint,
@@ -9,7 +8,6 @@ from .processes import (
 
 __all__ = [
     "outpaint_generation",
-    "OutpaintModel",
     "DatasetItem",
     "PackshotConfig",
     "run_simple_prompt",

@@ -1,15 +1,8 @@
 from __future__ import annotations
 
-from enum import StrEnum
-from typing import Optional, Tuple, Literal, Dict, Any
+from typing import Any, Dict, Optional, Tuple
+
 from pydantic import BaseModel
-
-
-class OutpaintModel(StrEnum):
-    # Aliases to keep naming consistent with internal jargon
-    GEMINI_3_PRO_PREVIEW = "gemini-3-pro-preview"  # text model (prompt helper)
-    IMAGEN_GENERATE = "imagen-3.0-generate-002"    # text-to-image
-    IMAGEN_EDIT = "imagen-3.0-edit-001"            # image edit/outpaint
 
 
 class PackshotConfig(BaseModel):
@@ -39,9 +32,13 @@ class DatasetItem(BaseModel):
 
 class ProcessResult(BaseModel):
     image: Any  # PIL.Image.Image, but keep Any to avoid optional runtime deps here
-    pre_repaste_image: Any | None = None  # image before re-pasting the original packshot
+    pre_repaste_image: Any | None = (
+        None  # image before re-pasting the original packshot
+    )
     sketch_image: Any | None = None  # for 2-step processes: intermediate sketch
-    initial_canvas_image: Any | None = None  # the base canvas sent to the model at step 1
+    initial_canvas_image: Any | None = (
+        None  # the base canvas sent to the model at step 1
+    )
     metadata: Dict[str, Any] = {}
     prompt_used: Optional[str] = None
     negative_prompt_used: Optional[str] = None

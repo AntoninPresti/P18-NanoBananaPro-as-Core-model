@@ -1,5 +1,5 @@
-import sys
 import random
+import sys
 from pathlib import Path
 
 import streamlit as st
@@ -12,7 +12,6 @@ if str(SRC) not in sys.path:
 
 from src.p18_nano_banana_core_model.utils.data import find_dataset_items
 from src.p18_nano_banana_core_model.processes import run_sketch_to_photo
-from src.p18_nano_banana_core_model.types import OutpaintModel
 import importlib
 
 try:
@@ -48,7 +47,13 @@ batch_count = 0
 if mode == "Single":
     choice = st.sidebar.selectbox("Choose one item", stems if stems else ["<none>"])
 else:
-    batch_count = st.sidebar.number_input("How many random items?", min_value=1, max_value=max(1, len(items)), value=min(4, len(items) or 1), step=1)
+    batch_count = st.sidebar.number_input(
+        "How many random items?",
+        min_value=1,
+        max_value=max(1, len(items)),
+        value=min(4, len(items) or 1),
+        step=1,
+    )
 
 prefer_rewritten = st.sidebar.checkbox("Use rewritten prompt (0_Prompts)", value=True)
 negative_prompt = st.sidebar.text_input("Negative prompt (optional)", value="")
@@ -63,9 +68,9 @@ photo_prompt = st.sidebar.text_area(
         "Make this sketch photorealistic. Keep exactly the same scene and layout; do not move any elements."
     ),
 )
-mask_feather = st.sidebar.slider("Mask feather (px)", min_value=0, max_value=32, value=6)
-
-model = OutpaintModel.IMAGEN_EDIT
+mask_feather = st.sidebar.slider(
+    "Mask feather (px)", min_value=0, max_value=32, value=6
+)
 
 if not items:
     st.warning("No dataset items found.")
@@ -78,17 +83,30 @@ else:
                 with cols[0]:
                     st.subheader("Inputs")
                     st.write(f"Stem: {item.stem}")
-                    st.image(item.packshot_path, caption="Packshot", use_container_width=True)
-                    if item.original_generation_path and Path(item.original_generation_path).exists():
-                        st.image(item.original_generation_path, caption="Original generation (reference)", use_container_width=True)
+                    st.image(
+                        item.packshot_path, caption="Packshot", use_container_width=True
+                    )
+                    if (
+                        item.original_generation_path
+                        and Path(item.original_generation_path).exists()
+                    ):
+                        st.image(
+                            item.original_generation_path,
+                            caption="Original generation (reference)",
+                            use_container_width=True,
+                        )
 
                 with cols[1]:
                     st.subheader("Generation")
                     if st.button("Generate", type="primary"):
-                        res = run_sketch_to_photo(item, prefer_rewritten=prefer_rewritten,
-                                                  sketch_prompt_prefix=sketch_prefix, photo_prompt=photo_prompt,
-                                                  negative_prompt=negative_prompt or None, model_edit=model,
-                                                  mask_feather=int(mask_feather))
+                        res = run_sketch_to_photo(
+                            item,
+                            prefer_rewritten=prefer_rewritten,
+                            sketch_prompt_prefix=sketch_prefix,
+                            photo_prompt=photo_prompt,
+                            negative_prompt=negative_prompt or None,
+                            mask_feather=int(mask_feather),
+                        )
                         # Show initial canvas that is sent to the model at Step 1
                         if getattr(res, "initial_canvas_image", None) is not None:
                             st.image(
@@ -98,7 +116,11 @@ else:
                             )
                         # Show intermediate sketch (step 1)
                         if getattr(res, "sketch_image", None) is not None:
-                            st.image(res.sketch_image, caption="Sketch (step 1)", use_container_width=True)
+                            st.image(
+                                res.sketch_image,
+                                caption="Sketch (step 1)",
+                                use_container_width=True,
+                            )
                         # Show step 2 Before/After (pre-repaste vs final)
                         if getattr(res, "pre_repaste_image", None) is not None:
                             show_comparison(
@@ -109,7 +131,11 @@ else:
                                 key=f"cmp_sketch_{item.stem}",
                             )
                         else:
-                            st.image(res.image, caption="Result (after repaste)", use_container_width=True)
+                            st.image(
+                                res.image,
+                                caption="Result (after repaste)",
+                                use_container_width=True,
+                            )
                         if res.metadata.get("saved_dir"):
                             st.caption(f"Saved to: {res.metadata.get('saved_dir')}")
                         with st.expander("Prompts used"):
@@ -124,10 +150,17 @@ else:
                 st.markdown(f"#### {item.stem}")
                 cols = st.columns([1, 1, 1])
                 with cols[0]:
-                    st.image(item.packshot_path, caption="Packshot", use_container_width=True)
-                res = run_sketch_to_photo(item, prefer_rewritten=prefer_rewritten, sketch_prompt_prefix=sketch_prefix,
-                                          photo_prompt=photo_prompt, negative_prompt=negative_prompt or None,
-                                          model_edit=model, mask_feather=int(mask_feather))
+                    st.image(
+                        item.packshot_path, caption="Packshot", use_container_width=True
+                    )
+                res = run_sketch_to_photo(
+                    item,
+                    prefer_rewritten=prefer_rewritten,
+                    sketch_prompt_prefix=sketch_prefix,
+                    photo_prompt=photo_prompt,
+                    negative_prompt=negative_prompt or None,
+                    mask_feather=int(mask_feather),
+                )
                 with cols[1]:
                     # Show initial canvas first
                     if getattr(res, "initial_canvas_image", None) is not None:
@@ -138,7 +171,11 @@ else:
                         )
                     # Show intermediate sketch first
                     if getattr(res, "sketch_image", None) is not None:
-                        st.image(res.sketch_image, caption="Sketch (step 1)", use_container_width=True)
+                        st.image(
+                            res.sketch_image,
+                            caption="Sketch (step 1)",
+                            use_container_width=True,
+                        )
                     # Then the comparison for step 2
                     if getattr(res, "pre_repaste_image", None) is not None:
                         show_comparison(
@@ -149,9 +186,20 @@ else:
                             key=f"cmp_sketch_batch_{item.stem}",
                         )
                     else:
-                        st.image(res.image, caption="Result (after repaste)", use_container_width=True)
+                        st.image(
+                            res.image,
+                            caption="Result (after repaste)",
+                            use_container_width=True,
+                        )
                     if res.metadata.get("saved_dir"):
                         st.caption(f"Saved to: {res.metadata.get('saved_dir')}")
-                if item.original_generation_path and Path(item.original_generation_path).exists():
+                if (
+                    item.original_generation_path
+                    and Path(item.original_generation_path).exists()
+                ):
                     with cols[2]:
-                        st.image(item.original_generation_path, caption="Original generation", use_container_width=True)
+                        st.image(
+                            item.original_generation_path,
+                            caption="Original generation",
+                            use_container_width=True,
+                        )

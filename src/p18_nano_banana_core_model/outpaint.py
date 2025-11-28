@@ -4,9 +4,8 @@ from typing import Optional
 
 from PIL import Image
 
-from .types import OutpaintModel
-from .image_utils import load_image, ensure_size, make_outpaint_mask, paste_packshot
 from .genai_client import edit_image
+from .image_utils import ensure_size, load_image, make_outpaint_mask, paste_packshot
 
 
 def outpaint_generation(
@@ -20,7 +19,7 @@ def outpaint_generation(
     packshot_url: str,
     prompt: str,
     negative_prompt: Optional[str] = None,
-    model: OutpaintModel = OutpaintModel.IMAGEN_EDIT,
+    model: Optional[str] = None,
     packshot_type: Optional[str] = None,
     seed: Optional[int] = None,
 ) -> Image.Image:
@@ -54,7 +53,6 @@ def outpaint_generation(
         mask=mask,
         prompt=prompt,
         size=size,
-        model=str(model),
         seed=seed,
         negative_prompt=negative_prompt,
     )

@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import io
-from dataclasses import dataclass
-from typing import Tuple, Optional
-from pathlib import Path
+from typing import Tuple
 
 import requests
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -49,13 +47,17 @@ def make_outpaint_mask(
     return mask
 
 
-def paste_packshot(canvas: Image.Image, packshot: Image.Image, xy: Tuple[int, int]) -> Image.Image:
+def paste_packshot(
+    canvas: Image.Image, packshot: Image.Image, xy: Tuple[int, int]
+) -> Image.Image:
     out = canvas.copy()
     out.alpha_composite(packshot, xy)
     return out
 
 
-def draw_placeholder_background(size: Tuple[int, int], text: str = "NO API KEY - MOCK") -> Image.Image:
+def draw_placeholder_background(
+    size: Tuple[int, int], text: str = "NO API KEY - MOCK"
+) -> Image.Image:
     w, h = size
     bg = Image.new("RGBA", (w, h), (240, 240, 240, 255))
     draw = ImageDraw.Draw(bg)

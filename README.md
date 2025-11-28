@@ -78,6 +78,7 @@ Automatic saving of generations
   - `data/NBpro_TrainSet/<process>/<stem>/<timestamp>/`
     - `final.png` — after re-pasting the original packshot
     - `before_repaste.png` — model output prior to re-paste (for visual comparison)
+    - `sketch.png` — for the Sketch → Photoreal process, the intermediate sketch from Step 1
     - `meta.json` — full metadata: prompts, negative prompt, seed, size, model, process params, and packshot geometry
 - We never overwrite existing data: a timestamped folder (with numeric suffix if needed) is created for each run.
   - Implementation: see `src/p18_nano_banana_core_model/utils/saver.py` and its `save_generation(...)` function.
