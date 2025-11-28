@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Callable, Dict, Any
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import streamlit as st
 from PIL import Image
@@ -85,6 +86,7 @@ def _ensure_n_results_for_item(
     mask_feather: int,
     target_n: int,
 ):
+    """Sequential fill for a single item (used as a fallback)."""
     # Process 1: simple_prompt
     sp_dirs = _list_runs_for(item.stem, "simple_prompt")
     missing = max(0, target_n - len(sp_dirs))
@@ -111,6 +113,56 @@ def _ensure_n_results_for_item(
         )
 
 
+def _build_missing_tasks_for_item(
+    item,
+    base_dir: Path,
+    *,
+    prefer_rewritten: bool,
+    negative_prompt: str | None,
+    mask_feather: int,
+    target_n: int,
+) -> List[Tuple[Callable[..., Any], Dict[str, Any], str]]:
+    """Return a list of (callable, kwargs, label) tasks needed to reach target_n for both processes."""
+    tasks: List[Tuple[Callable[..., Any], Dict[str, Any], str]] = []
+    # Simple prompt tasks
+    sp_dirs = _list_runs_for(item.stem, "simple_prompt")
+    missing_sp = max(0, target_n - len(sp_dirs))
+    for i in range(missing_sp):
+        tasks.append(
+            (
+                run_simple_prompt,
+                dict(
+                    item=item,
+                    prefer_rewritten=prefer_rewritten,
+                    negative_prompt=negative_prompt,
+                    save_base_dir=str(base_dir),
+                ),
+                f"SP {item.stem} #{i+1}",
+            )
+        )
+    # Sketch->Photo tasks
+    s2_dirs = _list_runs_for(item.stem, "sketch_to_photo")
+    missing_s2 = max(0, target_n - len(s2_dirs))
+    for i in range(missing_s2):
+        tasks.append(
+            (
+                run_sketch_to_photo,
+                dict(
+                    item=item,
+                    prefer_rewritten=prefer_rewritten,
+                    photo_prompt=(
+                        "Make this sketch photorealistic. Keep exactly the same scene and layout; do not move any elements."
+                    ),
+                    negative_prompt=negative_prompt,
+                    mask_feather=mask_feather,
+                    save_base_dir=str(base_dir),
+                ),
+                f"S2 {item.stem} #{i+1}",
+            )
+        )
+    return tasks
+
+
 if not items:
     st.warning("No dataset items found.")
     st.stop()
@@ -126,13 +178,18 @@ negative_prompt = st.sidebar.text_input("Negative prompt (optional)", value="")
 shots_per_process = st.sidebar.number_input(
     "Generations per process", min_value=1, max_value=8, value=4, step=1
 )
+max_workers = st.sidebar.number_input(
+    "Max parallel workers", min_value=1, max_value=32, value=4, step=1
+)
 
 cols_top = st.columns([1, 1])
 with cols_top[0]:
     if st.button("Generate missing for ALL packshots", type="primary"):
-        with st.spinner("Generating missing runs for all items…"):
-            for it in items:
-                _ensure_n_results_for_item(
+        # Build tasks across all items
+        all_tasks: List[Tuple[Callable[..., Any], Dict[str, Any], str]] = []
+        for it in items:
+            all_tasks.extend(
+                _build_missing_tasks_for_item(
                     it,
                     run_dir,
                     prefer_rewritten=prefer_rewritten,
@@ -140,6 +197,38 @@ with cols_top[0]:
                     mask_feather=int(mask_feather),
                     target_n=int(shots_per_process),
                 )
+            )
+        if not all_tasks:
+            st.success("Nothing to do — all required generations already exist for this run.")
+        else:
+            progress = st.progress(0)
+            status_area = st.empty()
+            errors: List[str] = []
+            total = len(all_tasks)
+            done = 0
+            # Execute in parallel
+            with ThreadPoolExecutor(max_workers=int(max_workers)) as ex:
+                futures = {
+                    ex.submit(func, **kwargs): label for (func, kwargs, label) in all_tasks
+                }
+                for fut in as_completed(futures):
+                    label = futures[fut]
+                    try:
+                        _ = fut.result()
+                    except Exception as e:
+                        errors.append(f"{label}: {e}")
+                    finally:
+                        done += 1
+                        progress.progress(min(done / total, 1.0))
+                        status_area.text(f"Completed {done}/{total} tasks…")
+            if errors:
+                st.error("Some tasks failed:")
+                for msg in errors[:20]:
+                    st.write(f"- {msg}")
+                if len(errors) > 20:
+                    st.write(f"… and {len(errors) - 20} more errors")
+            else:
+                st.success("All tasks finished successfully.")
 with cols_top[1]:
     st.caption(
         "This tool saves all outputs into the selected run directory and can resume a run by loading existing generations."
@@ -154,15 +243,43 @@ for item in items:
     # Ensure we have up to N results already, but do not force-generate unless user clicked the button
     # Offer a per-item button too
     if st.button(f"Generate missing for {item.stem}"):
-        with st.spinner(f"Generating for {item.stem}…"):
-            _ensure_n_results_for_item(
-                item,
-                run_dir,
-                prefer_rewritten=prefer_rewritten,
-                negative_prompt=negative_prompt or None,
-                mask_feather=int(mask_feather),
-                target_n=int(shots_per_process),
-            )
+        # Build tasks for this specific item
+        tasks = _build_missing_tasks_for_item(
+            item,
+            run_dir,
+            prefer_rewritten=prefer_rewritten,
+            negative_prompt=negative_prompt or None,
+            mask_feather=int(mask_feather),
+            target_n=int(shots_per_process),
+        )
+        if not tasks:
+            st.info("Nothing to do for this item.")
+        else:
+            progress = st.progress(0)
+            status_area = st.empty()
+            errors: List[str] = []
+            total = len(tasks)
+            done = 0
+            with ThreadPoolExecutor(max_workers=int(max_workers)) as ex:
+                futures = {ex.submit(func, **kwargs): label for (func, kwargs, label) in tasks}
+                for fut in as_completed(futures):
+                    label = futures[fut]
+                    try:
+                        _ = fut.result()
+                    except Exception as e:
+                        errors.append(f"{label}: {e}")
+                    finally:
+                        done += 1
+                        progress.progress(min(done / total, 1.0))
+                        status_area.text(f"Completed {done}/{total} tasks…")
+            if errors:
+                st.error("Some tasks failed:")
+                for msg in errors[:20]:
+                    st.write(f"- {msg}")
+                if len(errors) > 20:
+                    st.write(f"… and {len(errors) - 20} more errors")
+            else:
+                st.success("All tasks for this item finished successfully.")
 
     # Reload directory listings after potential generation
     sp_dirs = _list_runs_for(item.stem, "simple_prompt")[-int(shots_per_process) :]
