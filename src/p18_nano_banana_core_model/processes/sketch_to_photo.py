@@ -17,13 +17,13 @@ def run_sketch_to_photo(
     *,
     prefer_rewritten: bool = True,
     sketch_prompt_prefix: str = (
-        "Prends ce produit et crée un sketch/line-art de la scène suivante: "
+        "Take this product and create a sketch/line-art of the following scene: "
     ),
     sketch_guardrails: str = (
-        "Dans le sketch, la position du produit doit rester exactement la même dans le carré envoyé."
+        "In the sketch, the product must remain at exactly the same position within the square I sent."
     ),
     photo_prompt: str = (
-        "Rends ce sketch photoréaliste, en gardant exactement la même scène et la même disposition."
+        "Make this sketch photorealistic. Keep exactly the same scene and layout; do not move any elements."
     ),
     negative_prompt: Optional[str] = None,
     model_edit: OutpaintModel = OutpaintModel.IMAGEN_EDIT,
@@ -78,7 +78,9 @@ def run_sketch_to_photo(
     final_img = paste_packshot(photo_img, pack, pack_xy)
     result = ProcessResult(
         image=final_img,
+        sketch_image=sketch_img,
         pre_repaste_image=photo_img,
+        initial_canvas_image=canvas,
         prompt_used=f"STEP1: {step1_prompt}\n\nSTEP2: {step2_prompt}",
         negative_prompt_used=negative_prompt or cfg.negative_prompt,
         seed=seed if seed is not None else cfg.seed,

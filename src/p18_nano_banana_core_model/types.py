@@ -40,6 +40,8 @@ class DatasetItem(BaseModel):
 class ProcessResult(BaseModel):
     image: Any  # PIL.Image.Image, but keep Any to avoid optional runtime deps here
     pre_repaste_image: Any | None = None  # image before re-pasting the original packshot
+    sketch_image: Any | None = None  # for 2-step processes: intermediate sketch
+    initial_canvas_image: Any | None = None  # the base canvas sent to the model at step 1
     metadata: Dict[str, Any] = {}
     prompt_used: Optional[str] = None
     negative_prompt_used: Optional[str] = None

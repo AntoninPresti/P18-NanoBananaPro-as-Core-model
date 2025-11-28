@@ -57,18 +57,18 @@ use_seed = st.sidebar.checkbox("Use seed", value=False)
 
 sketch_prefix = st.sidebar.text_area(
     "Sketch Step: instruction prefix",
-    value="Prends ce produit et crée un sketch/line-art de la scène suivante:",
+    value="Take this product and create a sketch/line-art of the following scene:",
 )
 sketch_guardrails = st.sidebar.text_area(
     "Sketch Step: guardrails",
     value=(
-        "Dans le sketch, la position du produit doit rester exactement la même dans le carré envoyé."
+        "In the sketch, the product must remain at exactly the same position within the square I sent."
     ),
 )
 photo_prompt = st.sidebar.text_area(
     "Photo Step: instruction",
     value=(
-        "Rends ce sketch photoréaliste, en gardant exactement la même scène et la même disposition."
+        "Make this sketch photorealistic. Keep exactly the same scene and layout; do not move any elements."
     ),
 )
 mask_feather = st.sidebar.slider("Mask feather (px)", min_value=0, max_value=32, value=6)
@@ -104,6 +104,17 @@ else:
                             seed=int(seed) if use_seed else None,
                             mask_feather=int(mask_feather),
                         )
+                        # Show initial canvas that is sent to the model at Step 1
+                        if getattr(res, "initial_canvas_image", None) is not None:
+                            st.image(
+                                res.initial_canvas_image,
+                                caption="Initial canvas (input to Step 1)",
+                                use_container_width=True,
+                            )
+                        # Show intermediate sketch (step 1)
+                        if getattr(res, "sketch_image", None) is not None:
+                            st.image(res.sketch_image, caption="Sketch (step 1)", use_container_width=True)
+                        # Show step 2 Before/After (pre-repaste vs final)
                         if getattr(res, "pre_repaste_image", None) is not None:
                             show_comparison(
                                 res.pre_repaste_image,
@@ -141,6 +152,17 @@ else:
                     mask_feather=int(mask_feather),
                 )
                 with cols[1]:
+                    # Show initial canvas first
+                    if getattr(res, "initial_canvas_image", None) is not None:
+                        st.image(
+                            res.initial_canvas_image,
+                            caption="Initial canvas (input to Step 1)",
+                            use_container_width=True,
+                        )
+                    # Show intermediate sketch first
+                    if getattr(res, "sketch_image", None) is not None:
+                        st.image(res.sketch_image, caption="Sketch (step 1)", use_container_width=True)
+                    # Then the comparison for step 2
                     if getattr(res, "pre_repaste_image", None) is not None:
                         show_comparison(
                             res.pre_repaste_image,

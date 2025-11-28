@@ -142,8 +142,14 @@ def generate_image(
         contents=[prompt],
         config=gen_cfg,
     )
-
-    return _extract_first_image_from_parts(resp.parts)
+    # Normalize output to requested canvas size (safety against model returning a different size)
+    img = _extract_first_image_from_parts(resp.parts)
+    target_size = size
+    if target_size and img.size != target_size:
+        img = img.resize(target_size, Image.LANCZOS).convert("RGBA")
+    else:
+        img = img.convert("RGBA")
+    return img
 
 
 def edit_image(
@@ -201,5 +207,11 @@ def edit_image(
         contents=contents,
         config=gen_cfg,
     )
-
-    return _extract_first_image_from_parts(resp.parts)
+    # Normalize output to canvas size to guarantee perfect repaste alignment
+    img = _extract_first_image_from_parts(resp.parts)
+    target_size = size or base_image.size
+    if img.size != target_size:
+        img = img.resize(target_size, Image.LANCZOS).convert("RGBA")
+    else:
+        img = img.convert("RGBA")
+    return img

@@ -61,15 +61,15 @@ mask_feather = st.sidebar.slider("Mask feather (for masked/sketch processes)", m
 extra_guardrails = st.sidebar.text_area("Simple Prompt: extra instructions", value="")
 sketch_prefix = st.sidebar.text_input(
     "Sketch Step: instruction prefix",
-    value="Prends ce produit et crée un sketch/line-art de la scène suivante:",
+    value="Take this product and create a sketch/line-art of the following scene:",
 )
 sketch_guardrails = st.sidebar.text_input(
     "Sketch Step: guardrails",
-    value="Dans le sketch, la position du produit doit rester exactement la même dans le carré envoyé.",
+    value="In the sketch, the product must remain at exactly the same position within the square I sent.",
 )
 photo_prompt = st.sidebar.text_input(
     "Photo Step: instruction",
-    value="Rends ce sketch photoréaliste, en gardant exactement la même scène et la même disposition.",
+    value="Make this sketch photorealistic. Keep exactly the same scene and layout; do not move any elements.",
 )
 
 model = OutpaintModel.IMAGEN_EDIT
