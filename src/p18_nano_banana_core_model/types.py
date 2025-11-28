@@ -39,6 +39,7 @@ class DatasetItem(BaseModel):
 
 class ProcessResult(BaseModel):
     image: Any  # PIL.Image.Image, but keep Any to avoid optional runtime deps here
+    pre_repaste_image: Any | None = None  # image before re-pasting the original packshot
     metadata: Dict[str, Any] = {}
     prompt_used: Optional[str] = None
     negative_prompt_used: Optional[str] = None

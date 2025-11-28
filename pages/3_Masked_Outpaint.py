@@ -13,6 +13,22 @@ if str(SRC) not in sys.path:
 from src.p18_nano_banana_core_model.utils.data import find_dataset_items
 from src.p18_nano_banana_core_model.processes import run_masked_outpaint
 from src.p18_nano_banana_core_model.types import OutpaintModel
+try:
+    from streamlit_image_comparison import image_comparison as _image_comparison
+except Exception:
+    _image_comparison = None
+
+
+def show_comparison(img1, img2, *, label1: str, label2: str, key: str):
+    if _image_comparison is not None:
+        _image_comparison(img1=img1, img2=img2, label1=label1, label2=label2, key=key)
+    else:
+        st.caption("Comparison widget not available — showing static images.")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.image(img1, caption=label1, use_container_width=True)
+        with c2:
+            st.image(img2, caption=label2, use_container_width=True)
 
 
 st.set_page_config(page_title="3) Masked Outpaint", layout="wide")
@@ -72,7 +88,18 @@ else:
                             seed=int(seed) if use_seed else None,
                             extra_instruction=extra_instruction or None,
                         )
-                        st.image(res.image, caption="Result", use_container_width=True)
+                        if getattr(res, "pre_repaste_image", None) is not None:
+                            show_comparison(
+                                res.pre_repaste_image,
+                                res.image,
+                                label1="Before repaste",
+                                label2="After repaste",
+                                key=f"cmp_masked_{item.stem}",
+                            )
+                        else:
+                            st.image(res.image, caption="Result (after repaste)", use_container_width=True)
+                        if res.metadata.get("saved_dir"):
+                            st.caption(f"Saved to: {res.metadata.get('saved_dir')}")
                         with st.expander("Prompt used"):
                             st.code(res.prompt_used or "")
                     else:
@@ -98,7 +125,18 @@ else:
                     extra_instruction=extra_instruction or None,
                 )
                 with cols[1]:
-                    st.image(res.image, caption="Result", use_container_width=True)
+                    if getattr(res, "pre_repaste_image", None) is not None:
+                        show_comparison(
+                            res.pre_repaste_image,
+                            res.image,
+                            label1="Before repaste",
+                            label2="After repaste",
+                            key=f"cmp_masked_batch_{item.stem}",
+                        )
+                    else:
+                        st.image(res.image, caption="Result (after repaste)", use_container_width=True)
+                    if res.metadata.get("saved_dir"):
+                        st.caption(f"Saved to: {res.metadata.get('saved_dir')}")
                 if item.original_generation_path and Path(item.original_generation_path).exists():
                     with cols[2]:
                         st.image(item.original_generation_path, caption="Original generation", use_container_width=True)

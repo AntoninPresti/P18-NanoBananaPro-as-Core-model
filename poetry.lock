@@ -1473,6 +1473,26 @@ snowflake = ["snowflake-connector-python (>=3.3.0) ; python_version < \"3.12\"",
 sql = ["SQLAlchemy (>=2.0.0)"]
 
 [[package]]
+name = "streamlit-image-comparison"
+version = "0.0.4"
+description = "A Streamlit Component to compare images with a slider in Streamlit apps."
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "streamlit-image-comparison-0.0.4.tar.gz", hash = "sha256:3932875978151eb89b65a2da5ca293fc15da12a322632214d96ce0146d9154b4"},
+    {file = "streamlit_image_comparison-0.0.4-py3-none-any.whl", hash = "sha256:84bb4bc8c9e66fd7ab28fdcd76cf87f0f27941e7288160fb9832c9322bd1f085"},
+]
+
+[package.dependencies]
+numpy = "*"
+Pillow = "*"
+streamlit = "*"
+
+[package.extras]
+dev = ["black (==21.7b0)", "flake8 (==3.9.2)", "isort (==5.9.2)", "jupyterlab (==3.0.14)"]
+
+[[package]]
 name = "tenacity"
 version = "9.1.2"
 description = "Retry code until it succeeds"
@@ -1727,4 +1747,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "ad24407c05c65258dbdf85b036d2f7c412596f01d504886588c1afe38dfaf8e8"
+content-hash = "544860bf7825ff3c52f876f18238a9d1abfe179ebd11975573838c6307efbaf8"

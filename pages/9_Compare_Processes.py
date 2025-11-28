@@ -17,6 +17,22 @@ from src.p18_nano_banana_core_model.processes import (
     run_masked_outpaint,
 )
 from src.p18_nano_banana_core_model.types import OutpaintModel
+try:
+    from streamlit_image_comparison import image_comparison as _image_comparison
+except Exception:
+    _image_comparison = None
+
+
+def show_comparison(img1, img2, *, label1: str, label2: str, key: str):
+    if _image_comparison is not None:
+        _image_comparison(img1=img1, img2=img2, label1=label1, label2=label2, key=key)
+    else:
+        st.caption("Comparison widget not available — showing static images.")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.image(img1, caption=label1, use_container_width=True)
+        with c2:
+            st.image(img2, caption=label2, use_container_width=True)
 
 
 st.set_page_config(page_title="9) Compare Processes", layout="wide")
@@ -106,11 +122,38 @@ else:
                     with cols[0]:
                         st.image(item.packshot_path, caption="Packshot", use_container_width=True)
                     with cols[1]:
-                        st.image(res_simple.image, caption="Simple Prompt", use_container_width=True)
+                        if getattr(res_simple, "pre_repaste_image", None) is not None:
+                            show_comparison(
+                                res_simple.pre_repaste_image,
+                                res_simple.image,
+                                label1="Before repaste",
+                                label2="After repaste",
+                                key=f"cmp_compare_simple_{item.stem}",
+                            )
+                        else:
+                            st.image(res_simple.image, caption="Simple Prompt (after repaste)", use_container_width=True)
                     with cols[2]:
-                        st.image(res_sketch.image, caption="Sketch→Photo", use_container_width=True)
+                        if getattr(res_sketch, "pre_repaste_image", None) is not None:
+                            show_comparison(
+                                res_sketch.pre_repaste_image,
+                                res_sketch.image,
+                                label1="Before repaste",
+                                label2="After repaste",
+                                key=f"cmp_compare_sketch_{item.stem}",
+                            )
+                        else:
+                            st.image(res_sketch.image, caption="Sketch→Photo (after repaste)", use_container_width=True)
                     with cols[3]:
-                        st.image(res_masked.image, caption="Masked Outpaint", use_container_width=True)
+                        if getattr(res_masked, "pre_repaste_image", None) is not None:
+                            show_comparison(
+                                res_masked.pre_repaste_image,
+                                res_masked.image,
+                                label1="Before repaste",
+                                label2="After repaste",
+                                key=f"cmp_compare_masked_{item.stem}",
+                            )
+                        else:
+                            st.image(res_masked.image, caption="Masked Outpaint (after repaste)", use_container_width=True)
                     with cols[4]:
                         if item.original_generation_path and Path(item.original_generation_path).exists():
                             st.image(item.original_generation_path, caption="Original ref", use_container_width=True)
@@ -136,11 +179,38 @@ else:
                 with cols[0]:
                     st.image(item.packshot_path, caption="Packshot", use_container_width=True)
                 with cols[1]:
-                    st.image(res_simple.image, caption="Simple", use_container_width=True)
+                    if getattr(res_simple, "pre_repaste_image", None) is not None:
+                        show_comparison(
+                            res_simple.pre_repaste_image,
+                            res_simple.image,
+                            label1="Before repaste",
+                            label2="After repaste",
+                            key=f"cmp_compare_simple_batch_{item.stem}",
+                        )
+                    else:
+                        st.image(res_simple.image, caption="Simple (after repaste)", use_container_width=True)
                 with cols[2]:
-                    st.image(res_sketch.image, caption="Sketch→Photo", use_container_width=True)
+                    if getattr(res_sketch, "pre_repaste_image", None) is not None:
+                        show_comparison(
+                            res_sketch.pre_repaste_image,
+                            res_sketch.image,
+                            label1="Before repaste",
+                            label2="After repaste",
+                            key=f"cmp_compare_sketch_batch_{item.stem}",
+                        )
+                    else:
+                        st.image(res_sketch.image, caption="Sketch→Photo (after repaste)", use_container_width=True)
                 with cols[3]:
-                    st.image(res_masked.image, caption="Masked Outpaint", use_container_width=True)
+                    if getattr(res_masked, "pre_repaste_image", None) is not None:
+                        show_comparison(
+                            res_masked.pre_repaste_image,
+                            res_masked.image,
+                            label1="Before repaste",
+                            label2="After repaste",
+                            key=f"cmp_compare_masked_batch_{item.stem}",
+                        )
+                    else:
+                        st.image(res_masked.image, caption="Masked Outpaint (after repaste)", use_container_width=True)
                 with cols[4]:
                     if item.original_generation_path and Path(item.original_generation_path).exists():
                         st.image(item.original_generation_path, caption="Original ref", use_container_width=True)

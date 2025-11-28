@@ -9,6 +9,7 @@ from ..utils.data import get_prompt_for_item
 from ..utils.prompt import add_do_not_move_guardrails
 from ..image_utils import load_image, ensure_size, make_outpaint_mask, paste_packshot
 from ..genai_client import edit_image
+from ..utils.saver import save_generation
 
 
 def run_masked_outpaint(
@@ -57,8 +58,9 @@ def run_masked_outpaint(
     )
 
     final_img = paste_packshot(edited, pack, pack_xy)
-    return ProcessResult(
+    result = ProcessResult(
         image=final_img,
+        pre_repaste_image=edited,
         prompt_used=prompt,
         negative_prompt_used=negative_prompt or cfg.negative_prompt,
         seed=seed if seed is not None else cfg.seed,
@@ -69,3 +71,20 @@ def run_masked_outpaint(
             "invert_mask": invert_mask,
         },
     )
+    # Persist generation
+    saved_dir = save_generation(
+        item=item,
+        process_name="masked_outpaint",
+        result=result,
+        params={
+            "prefer_rewritten": prefer_rewritten,
+            "feather": feather,
+            "invert_mask": invert_mask,
+            "background_fill_rgba": background_fill_rgba,
+            "negative_prompt": negative_prompt or cfg.negative_prompt,
+            "model": str(model),
+            "using_mask": True,
+        },
+    )
+    result.metadata["saved_dir"] = str(saved_dir)
+    return result

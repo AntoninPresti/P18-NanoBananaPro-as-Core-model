@@ -13,6 +13,25 @@ if str(SRC) not in sys.path:
 from src.p18_nano_banana_core_model.utils.data import find_dataset_items
 from src.p18_nano_banana_core_model.processes import run_sketch_to_photo
 from src.p18_nano_banana_core_model.types import OutpaintModel
+import importlib
+
+try:
+    _sic = importlib.import_module("streamlit_image_comparison")
+    _image_comparison = getattr(_sic, "image_comparison", None)
+except Exception:
+    _image_comparison = None
+
+
+def show_comparison(img1, img2, *, label1: str, label2: str, key: str):
+    if _image_comparison is not None:
+        _image_comparison(img1=img1, img2=img2, label1=label1, label2=label2, key=key)
+    else:
+        st.caption("Comparison widget not available — showing static images.")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.image(img1, caption=label1, use_container_width=True)
+        with c2:
+            st.image(img2, caption=label2, use_container_width=True)
 
 
 st.set_page_config(page_title="2) Sketch → Photoreal", layout="wide")
@@ -85,7 +104,18 @@ else:
                             seed=int(seed) if use_seed else None,
                             mask_feather=int(mask_feather),
                         )
-                        st.image(res.image, caption="Result", use_container_width=True)
+                        if getattr(res, "pre_repaste_image", None) is not None:
+                            show_comparison(
+                                res.pre_repaste_image,
+                                res.image,
+                                label1="Before repaste",
+                                label2="After repaste",
+                                key=f"cmp_sketch_{item.stem}",
+                            )
+                        else:
+                            st.image(res.image, caption="Result (after repaste)", use_container_width=True)
+                        if res.metadata.get("saved_dir"):
+                            st.caption(f"Saved to: {res.metadata.get('saved_dir')}")
                         with st.expander("Prompts used"):
                             st.code(res.prompt_used or "")
                     else:
@@ -111,7 +141,18 @@ else:
                     mask_feather=int(mask_feather),
                 )
                 with cols[1]:
-                    st.image(res.image, caption="Result", use_container_width=True)
+                    if getattr(res, "pre_repaste_image", None) is not None:
+                        show_comparison(
+                            res.pre_repaste_image,
+                            res.image,
+                            label1="Before repaste",
+                            label2="After repaste",
+                            key=f"cmp_sketch_batch_{item.stem}",
+                        )
+                    else:
+                        st.image(res.image, caption="Result (after repaste)", use_container_width=True)
+                    if res.metadata.get("saved_dir"):
+                        st.caption(f"Saved to: {res.metadata.get('saved_dir')}")
                 if item.original_generation_path and Path(item.original_generation_path).exists():
                     with cols[2]:
                         st.image(item.original_generation_path, caption="Original generation", use_container_width=True)

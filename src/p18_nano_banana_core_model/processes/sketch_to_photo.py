@@ -9,6 +9,7 @@ from ..utils.data import get_prompt_for_item
 from ..utils.prompt import strip_square_brackets
 from ..image_utils import load_image, ensure_size, make_outpaint_mask, paste_packshot
 from ..genai_client import edit_image
+from ..utils.saver import save_generation
 
 
 def run_sketch_to_photo(
@@ -75,11 +76,29 @@ def run_sketch_to_photo(
     )
 
     final_img = paste_packshot(photo_img, pack, pack_xy)
-    return ProcessResult(
+    result = ProcessResult(
         image=final_img,
+        pre_repaste_image=photo_img,
         prompt_used=f"STEP1: {step1_prompt}\n\nSTEP2: {step2_prompt}",
         negative_prompt_used=negative_prompt or cfg.negative_prompt,
         seed=seed if seed is not None else cfg.seed,
         size=size,
         metadata={"process": "sketch_to_photo"},
     )
+    saved_dir = save_generation(
+        item=item,
+        process_name="sketch_to_photo",
+        result=result,
+        params={
+            "prefer_rewritten": prefer_rewritten,
+            "mask_feather": mask_feather,
+            "negative_prompt": negative_prompt or cfg.negative_prompt,
+            "model": str(model_edit),
+            "using_mask": True,
+            "sketch_prompt_prefix": sketch_prompt_prefix,
+            "sketch_guardrails": sketch_guardrails,
+            "photo_prompt": photo_prompt,
+        },
+    )
+    result.metadata["saved_dir"] = str(saved_dir)
+    return result

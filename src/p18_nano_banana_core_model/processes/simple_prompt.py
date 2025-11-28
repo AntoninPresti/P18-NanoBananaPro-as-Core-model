@@ -7,7 +7,14 @@ from PIL import Image
 from ..types import DatasetItem, ProcessResult, OutpaintModel
 from ..utils.data import get_prompt_for_item
 from ..utils.prompt import add_do_not_move_guardrails
-from ..outpaint import outpaint_generation
+from ..image_utils import (
+    load_image,
+    ensure_size,
+    make_outpaint_mask,
+    paste_packshot,
+)
+from ..genai_client import edit_image
+from ..utils.saver import save_generation
 
 
 def run_simple_prompt(
@@ -28,26 +35,53 @@ def run_simple_prompt(
         prompt = f"{prompt}\n\n{extra_guardrails.strip()}"
 
     cfg = item.config
-    img = outpaint_generation(
-        generation_width=int(cfg.width or 1024),
-        generation_height=int(cfg.height or 1024),
-        packshot_width=cfg.packshot_width,
-        packshot_height=cfg.packshot_height,
-        packshot_top_left_pos_x=cfg.packshot_top_left_pos_x,
-        packshot_top_left_pos_y=cfg.packshot_top_left_pos_y,
-        packshot_url=cfg.packshot_url or item.packshot_path,
+    size = (int(cfg.width or 1024), int(cfg.height or 1024))
+    pack_xy = (cfg.packshot_top_left_pos_x, cfg.packshot_top_left_pos_y)
+    pack_wh = (cfg.packshot_width, cfg.packshot_height)
+
+    # Compose base canvas with packshot
+    canvas = Image.new("RGBA", size, (0, 0, 0, 0))
+    pack = load_image(cfg.packshot_url or item.packshot_path)
+    pack = ensure_size(pack, pack_wh)
+    canvas.alpha_composite(pack, pack_xy)
+
+    # Mask protecting the packshot
+    mask = make_outpaint_mask(size, pack_xy, pack_wh, feather=4, invert=False)
+
+    # Edit background
+    edited = edit_image(
+        base_image=canvas,
+        mask=mask,
         prompt=prompt,
-        negative_prompt=negative_prompt or cfg.negative_prompt,
-        model=model,
-        packshot_type=None,
+        size=size,
+        model=str(model),
         seed=seed if seed is not None else cfg.seed,
+        negative_prompt=negative_prompt or cfg.negative_prompt,
     )
 
-    return ProcessResult(
-        image=img,
+    # Re-paste original packshot
+    final_img = paste_packshot(edited, pack, pack_xy)
+
+    result = ProcessResult(
+        image=final_img,
+        pre_repaste_image=edited,
         prompt_used=prompt,
         negative_prompt_used=negative_prompt or cfg.negative_prompt,
         seed=seed if seed is not None else cfg.seed,
-        size=(int(cfg.width or 1024), int(cfg.height or 1024)),
+        size=size,
         metadata={"process": "simple_prompt"},
     )
+    saved_dir = save_generation(
+        item=item,
+        process_name="simple_prompt",
+        result=result,
+        params={
+            "prefer_rewritten": prefer_rewritten,
+            "extra_guardrails": extra_guardrails,
+            "negative_prompt": negative_prompt or cfg.negative_prompt,
+            "model": str(model),
+            "using_mask": True,
+        },
+    )
+    result.metadata["saved_dir"] = str(saved_dir)
+    return result
