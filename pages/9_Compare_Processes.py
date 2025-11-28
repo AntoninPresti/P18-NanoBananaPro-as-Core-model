@@ -83,17 +83,10 @@ def run_all(item):
         model=model,
         seed=int(seed) if use_seed else None,
     )
-    res_sketch = run_sketch_to_photo(
-        item,
-        prefer_rewritten=prefer_rewritten,
-        sketch_prompt_prefix=sketch_prefix,
-        sketch_guardrails=sketch_guardrails,
-        photo_prompt=photo_prompt,
-        negative_prompt=negative_prompt or None,
-        model_edit=model,
-        seed=int(seed) if use_seed else None,
-        mask_feather=int(mask_feather),
-    )
+    res_sketch = run_sketch_to_photo(item, prefer_rewritten=prefer_rewritten, sketch_prompt_prefix=sketch_prefix,
+                                     photo_prompt=photo_prompt, negative_prompt=negative_prompt or None,
+                                     model_edit=model, seed=int(seed) if use_seed else None,
+                                     mask_feather=int(mask_feather))
     res_masked = run_masked_outpaint(
         item,
         prefer_rewritten=prefer_rewritten,

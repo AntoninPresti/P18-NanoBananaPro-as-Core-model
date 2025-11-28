@@ -52,18 +52,10 @@ else:
 
 prefer_rewritten = st.sidebar.checkbox("Use rewritten prompt (0_Prompts)", value=True)
 negative_prompt = st.sidebar.text_input("Negative prompt (optional)", value="")
-seed = st.sidebar.number_input("Seed (optional)", min_value=0, max_value=2_147_483_647, value=0, step=1)
-use_seed = st.sidebar.checkbox("Use seed", value=False)
 
 sketch_prefix = st.sidebar.text_area(
     "Sketch Step: instruction prefix",
     value="Take this product and create a sketch/line-art of the following scene:",
-)
-sketch_guardrails = st.sidebar.text_area(
-    "Sketch Step: guardrails",
-    value=(
-        "In the sketch, the product must remain at exactly the same position within the square I sent."
-    ),
 )
 photo_prompt = st.sidebar.text_area(
     "Photo Step: instruction",
@@ -93,17 +85,10 @@ else:
                 with cols[1]:
                     st.subheader("Generation")
                     if st.button("Generate", type="primary"):
-                        res = run_sketch_to_photo(
-                            item,
-                            prefer_rewritten=prefer_rewritten,
-                            sketch_prompt_prefix=sketch_prefix,
-                            sketch_guardrails=sketch_guardrails,
-                            photo_prompt=photo_prompt,
-                            negative_prompt=negative_prompt or None,
-                            model_edit=model,
-                            seed=int(seed) if use_seed else None,
-                            mask_feather=int(mask_feather),
-                        )
+                        res = run_sketch_to_photo(item, prefer_rewritten=prefer_rewritten,
+                                                  sketch_prompt_prefix=sketch_prefix, photo_prompt=photo_prompt,
+                                                  negative_prompt=negative_prompt or None, model_edit=model,
+                                                  mask_feather=int(mask_feather))
                         # Show initial canvas that is sent to the model at Step 1
                         if getattr(res, "initial_canvas_image", None) is not None:
                             st.image(
@@ -140,17 +125,9 @@ else:
                 cols = st.columns([1, 1, 1])
                 with cols[0]:
                     st.image(item.packshot_path, caption="Packshot", use_container_width=True)
-                res = run_sketch_to_photo(
-                    item,
-                    prefer_rewritten=prefer_rewritten,
-                    sketch_prompt_prefix=sketch_prefix,
-                    sketch_guardrails=sketch_guardrails,
-                    photo_prompt=photo_prompt,
-                    negative_prompt=negative_prompt or None,
-                    model_edit=model,
-                    seed=int(seed) if use_seed else None,
-                    mask_feather=int(mask_feather),
-                )
+                res = run_sketch_to_photo(item, prefer_rewritten=prefer_rewritten, sketch_prompt_prefix=sketch_prefix,
+                                          photo_prompt=photo_prompt, negative_prompt=negative_prompt or None,
+                                          model_edit=model, mask_feather=int(mask_feather))
                 with cols[1]:
                     # Show initial canvas first
                     if getattr(res, "initial_canvas_image", None) is not None:

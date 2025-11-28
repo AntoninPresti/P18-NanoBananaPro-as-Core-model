@@ -6,30 +6,18 @@ from PIL import Image
 
 from ..types import DatasetItem, ProcessResult, OutpaintModel
 from ..utils.data import get_prompt_for_item
-from ..utils.prompt import strip_square_brackets
+from ..utils.prompt import strip_square_brackets, add_do_not_move_guardrails
 from ..image_utils import load_image, ensure_size, make_outpaint_mask, paste_packshot
 from ..genai_client import edit_image
 from ..utils.saver import save_generation
 
 
-def run_sketch_to_photo(
-    item: DatasetItem,
-    *,
-    prefer_rewritten: bool = True,
-    sketch_prompt_prefix: str = (
+def run_sketch_to_photo(item: DatasetItem, *, prefer_rewritten: bool = True, sketch_prompt_prefix: str = (
         "Take this product and create a sketch/line-art of the following scene: "
-    ),
-    sketch_guardrails: str = (
-        "In the sketch, the product must remain at exactly the same position within the square I sent."
-    ),
-    photo_prompt: str = (
+), photo_prompt: str = (
         "Make this sketch photorealistic. Keep exactly the same scene and layout; do not move any elements."
-    ),
-    negative_prompt: Optional[str] = None,
-    model_edit: OutpaintModel = OutpaintModel.IMAGEN_EDIT,
-    seed: Optional[int] = None,
-    mask_feather: int = 6,
-) -> ProcessResult:
+), negative_prompt: Optional[str] = None, model_edit: OutpaintModel = OutpaintModel.IMAGEN_EDIT,
+                        seed: Optional[int] = None, mask_feather: int = 6) -> ProcessResult:
     """Process 2 — Two-step: sketch around fixed product, then photorealistic render.
 
     Both steps use the same protected packshot mask. The second step converts
@@ -37,7 +25,9 @@ def run_sketch_to_photo(
     """
     base_prompt = get_prompt_for_item(item, prefer_rewritten=prefer_rewritten)
     base_prompt = strip_square_brackets(base_prompt)
-    step1_prompt = f"{sketch_prompt_prefix.strip()} {base_prompt}\n\n{sketch_guardrails.strip()}"
+    # Build Step 1 prompt using the SAME guardrail helper as the Simple Prompt process
+    step1_core = f"{sketch_prompt_prefix.strip()} {base_prompt}"
+    step1_prompt = add_do_not_move_guardrails(step1_core)
 
     cfg = item.config
     size = (int(cfg.width or 1024), int(cfg.height or 1024))
@@ -98,7 +88,6 @@ def run_sketch_to_photo(
             "model": str(model_edit),
             "using_mask": True,
             "sketch_prompt_prefix": sketch_prompt_prefix,
-            "sketch_guardrails": sketch_guardrails,
             "photo_prompt": photo_prompt,
         },
     )
