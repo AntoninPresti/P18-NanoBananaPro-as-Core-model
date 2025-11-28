@@ -17,7 +17,7 @@ def run_sketch_to_photo(
     *,
     prefer_rewritten: bool = True,
     sketch_prompt_prefix: str = (
-        "Fill this image with a sketch/line-art of the following scene:\n"
+        "Fill this image **WITHOUT MOVING THE PRODUCT** with a sketch/line-art of the following scene:\n"
     ),
     photo_prompt: str = (
         "Make this sketch photorealistic. Keep exactly the same scene and layout; do not move any elements."
@@ -25,6 +25,7 @@ def run_sketch_to_photo(
     negative_prompt: Optional[str] = None,
     seed: Optional[int] = None,
     mask_feather: int = 6,
+    save_base_dir: Optional[str] = None,
 ) -> ProcessResult:
     """Process 2 — Two-step: sketch around fixed product, then photorealistic render.
 
@@ -97,6 +98,7 @@ def run_sketch_to_photo(
             "sketch_prompt_prefix": sketch_prompt_prefix,
             "photo_prompt": photo_prompt,
         },
+        base_dir=save_base_dir,
     )
     result.metadata["saved_dir"] = str(saved_dir)
     return result

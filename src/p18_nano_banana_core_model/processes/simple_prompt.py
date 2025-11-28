@@ -20,6 +20,7 @@ def run_simple_prompt(
     extra_guardrails: Optional[str] = None,
     negative_prompt: Optional[str] = None,
     seed: Optional[int] = None,
+    save_base_dir: Optional[str] = None,
 ) -> ProcessResult:
     """Process 1 — Simple prompt + anti-drift guardrails, masked outpaint via Imagen Edit."""
     prompt = get_prompt_for_item(item, prefer_rewritten=prefer_rewritten)
@@ -79,6 +80,7 @@ def run_simple_prompt(
             "negative_prompt": negative_prompt or cfg.negative_prompt,
             "using_mask": True,
         },
+        base_dir=save_base_dir,
     )
     result.metadata["saved_dir"] = str(saved_dir)
     return result

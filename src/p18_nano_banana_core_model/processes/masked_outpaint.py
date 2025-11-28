@@ -22,6 +22,7 @@ def run_masked_outpaint(
     negative_prompt: Optional[str] = None,
     seed: Optional[int] = None,
     extra_instruction: Optional[str] = None,
+    save_base_dir: Optional[str] = None,
 ) -> ProcessResult:
     """Process 3 — Explicit masked outpaint with tunable mask softness and options."""
     prompt = get_prompt_for_item(item, prefer_rewritten=prefer_rewritten)
@@ -84,6 +85,7 @@ def run_masked_outpaint(
             "negative_prompt": negative_prompt or cfg.negative_prompt,
             "using_mask": True,
         },
+        base_dir=save_base_dir,
     )
     result.metadata["saved_dir"] = str(saved_dir)
     return result
