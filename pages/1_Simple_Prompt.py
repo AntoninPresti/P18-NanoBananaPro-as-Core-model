@@ -27,7 +27,7 @@ except Exception:
 
 def show_comparison(img1, img2, *, label1: str, label2: str, key: str):
     if _image_comparison is not None:
-        _image_comparison(img1=img1, img2=img2, label1=label1, label2=label2, key=key)
+        _image_comparison(img1=img1, img2=img2, label1=label1, label2=label2)
     else:
         st.caption("Comparison widget not available — showing static images.")
         c1, c2 = st.columns(2)
