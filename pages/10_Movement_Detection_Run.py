@@ -12,7 +12,10 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from src.p18_nano_banana_core_model.utils.data import find_dataset_items, get_prompt_for_item
+from src.p18_nano_banana_core_model.utils.data import (
+    find_dataset_items,
+    get_prompt_for_item,
+)
 from src.p18_nano_banana_core_model.processes import (
     run_simple_prompt,
     run_sketch_to_photo,
@@ -61,6 +64,8 @@ if not run_name:
 
 run_dir = RUNS_ROOT / run_name
 run_dir.mkdir(parents=True, exist_ok=True)
+
+
 def _list_runs_for(item_stem: str, process_name: str) -> List[Path]:
     """Return list of timestamp subfolders for a given item/process in the current run."""
     base = run_dir / process_name / item_stem
@@ -69,7 +74,9 @@ def _list_runs_for(item_stem: str, process_name: str) -> List[Path]:
     return sorted([p for p in base.iterdir() if p.is_dir()])
 
 
-def _load_images_from_run_dir(dir_path: Path) -> Tuple[Image.Image | None, Image.Image | None]:
+def _load_images_from_run_dir(
+    dir_path: Path,
+) -> Tuple[Image.Image | None, Image.Image | None]:
     pre = dir_path / "before_repaste.png"
     fin = dir_path / "final.png"
     pre_img = Image.open(pre).convert("RGBA") if pre.exists() else None
@@ -214,7 +221,9 @@ with cols_top[0]:
                 )
             )
         if not all_tasks:
-            st.success("Nothing to do — all required generations already exist for this run.")
+            st.success(
+                "Nothing to do — all required generations already exist for this run."
+            )
         else:
             progress = st.progress(0)
             status_area = st.empty()
@@ -224,7 +233,8 @@ with cols_top[0]:
             # Execute in parallel
             with ThreadPoolExecutor(max_workers=int(max_workers)) as ex:
                 futures = {
-                    ex.submit(func, **kwargs): label for (func, kwargs, label) in all_tasks
+                    ex.submit(func, **kwargs): label
+                    for (func, kwargs, label) in all_tasks
                 }
                 for fut in as_completed(futures):
                     label = futures[fut]
@@ -254,6 +264,23 @@ for item in items:
     st.markdown(f"## {item.stem}")
     prompt_text = get_prompt_for_item(item, prefer_rewritten=prefer_rewritten)
     st.caption(prompt_text)
+    # Also display the original generation (reference) if available
+    try:
+        orig_path = (
+            Path(item.original_generation_path)
+            if item.original_generation_path
+            else None
+        )
+        if orig_path and orig_path.exists():
+            col1, _ = st.columns(2)
+            col1.image(
+                str(orig_path),
+                caption="Original generation (reference)",
+                use_container_width=True,
+            )
+    except Exception:
+        # Non-fatal: skip if any issue occurs while loading the reference image
+        pass
 
     # Ensure we have up to N results already, but do not force-generate unless user clicked the button
     # Offer a per-item button too
@@ -276,7 +303,9 @@ for item in items:
             total = len(tasks)
             done = 0
             with ThreadPoolExecutor(max_workers=int(max_workers)) as ex:
-                futures = {ex.submit(func, **kwargs): label for (func, kwargs, label) in tasks}
+                futures = {
+                    ex.submit(func, **kwargs): label for (func, kwargs, label) in tasks
+                }
                 for fut in as_completed(futures):
                     label = futures[fut]
                     try:
@@ -304,7 +333,9 @@ for item in items:
     if st.session_state.get("_proc_simple_selected", True):
         st.markdown("#### Process 1 — Simple Prompt")
         if not sp_dirs:
-            st.info("No runs yet for Simple Prompt; click the 'Generate missing' button above.")
+            st.info(
+                "No runs yet for Simple Prompt; click the 'Generate missing' button above."
+            )
         else:
             row_cols = st.columns(len(sp_dirs))
             for col, d in zip(row_cols, sp_dirs):
@@ -326,7 +357,9 @@ for item in items:
     if st.session_state.get("_proc_sketch_selected", True):
         st.markdown("#### Process 2 — Sketch → Photoreal")
         if not s2_dirs:
-            st.info("No runs yet for Sketch→Photo; click the 'Generate missing' button above.")
+            st.info(
+                "No runs yet for Sketch→Photo; click the 'Generate missing' button above."
+            )
         else:
             row_cols = st.columns(len(s2_dirs))
             for col, d in zip(row_cols, s2_dirs):
