@@ -64,9 +64,12 @@ def run_sketch_to_photo(
     )
 
     # Step 2: Photorealistic rendering from sketch
+    # New: paste the original packshot on top of the sketch before launching the photoreal step
+    step2_base = sketch_img.copy()
+    step2_base = paste_packshot(step2_base, pack, pack_xy)
     step2_prompt = photo_prompt.strip()
     photo_img = edit_image(
-        base_image=sketch_img,
+        base_image=step2_base,
         mask=mask,
         prompt=step2_prompt,
         size=size,
@@ -84,7 +87,10 @@ def run_sketch_to_photo(
         negative_prompt_used=negative_prompt or cfg.negative_prompt,
         seed=seed if seed is not None else cfg.seed,
         size=size,
-        metadata={"process": "sketch_to_photo"},
+        metadata={
+            "process": "sketch_to_photo",
+            "step2_packshot_pasted": True,
+        },
     )
     saved_dir = save_generation(
         item=item,

@@ -124,42 +124,44 @@ def _build_missing_tasks_for_item(
 ) -> List[Tuple[Callable[..., Any], Dict[str, Any], str]]:
     """Return a list of (callable, kwargs, label) tasks needed to reach target_n for both processes."""
     tasks: List[Tuple[Callable[..., Any], Dict[str, Any], str]] = []
-    # Simple prompt tasks
-    sp_dirs = _list_runs_for(item.stem, "simple_prompt")
-    missing_sp = max(0, target_n - len(sp_dirs))
-    for i in range(missing_sp):
-        tasks.append(
-            (
-                run_simple_prompt,
-                dict(
-                    item=item,
-                    prefer_rewritten=prefer_rewritten,
-                    negative_prompt=negative_prompt,
-                    save_base_dir=str(base_dir),
-                ),
-                f"SP {item.stem} #{i+1}",
-            )
-        )
-    # Sketch->Photo tasks
-    s2_dirs = _list_runs_for(item.stem, "sketch_to_photo")
-    missing_s2 = max(0, target_n - len(s2_dirs))
-    for i in range(missing_s2):
-        tasks.append(
-            (
-                run_sketch_to_photo,
-                dict(
-                    item=item,
-                    prefer_rewritten=prefer_rewritten,
-                    photo_prompt=(
-                        "Make this sketch photorealistic. Keep exactly the same scene and layout; do not move any elements."
+    # The processes to consider are filtered later using closure variables (selected flags)
+    # We will inject selection via nonlocal access using global flags set below.
+    if st.session_state.get("_proc_simple_selected", True):
+        sp_dirs = _list_runs_for(item.stem, "simple_prompt")
+        missing_sp = max(0, target_n - len(sp_dirs))
+        for i in range(missing_sp):
+            tasks.append(
+                (
+                    run_simple_prompt,
+                    dict(
+                        item=item,
+                        prefer_rewritten=prefer_rewritten,
+                        negative_prompt=negative_prompt,
+                        save_base_dir=str(base_dir),
                     ),
-                    negative_prompt=negative_prompt,
-                    mask_feather=mask_feather,
-                    save_base_dir=str(base_dir),
-                ),
-                f"S2 {item.stem} #{i+1}",
+                    f"SP {item.stem} #{i+1}",
+                )
             )
-        )
+    if st.session_state.get("_proc_sketch_selected", True):
+        s2_dirs = _list_runs_for(item.stem, "sketch_to_photo")
+        missing_s2 = max(0, target_n - len(s2_dirs))
+        for i in range(missing_s2):
+            tasks.append(
+                (
+                    run_sketch_to_photo,
+                    dict(
+                        item=item,
+                        prefer_rewritten=prefer_rewritten,
+                        photo_prompt=(
+                            "Make this sketch photorealistic. Keep exactly the same scene and layout; do not move any elements."
+                        ),
+                        negative_prompt=negative_prompt,
+                        mask_feather=mask_feather,
+                        save_base_dir=str(base_dir),
+                    ),
+                    f"S2 {item.stem} #{i+1}",
+                )
+            )
     return tasks
 
 
@@ -169,6 +171,19 @@ if not items:
 
 # Options (placed after helper definitions)
 st.sidebar.caption(f"Run dir: {run_dir}")
+# Method selection
+selected_methods = st.sidebar.multiselect(
+    "Which methods?",
+    options=["Process 1 — Simple Prompt", "Process 2 — Sketch → Photoreal"],
+    default=["Process 1 — Simple Prompt", "Process 2 — Sketch → Photoreal"],
+)
+# Persist selection for use inside helper where Streamlit restrictions apply
+st.session_state["_proc_simple_selected"] = (
+    "Process 1 — Simple Prompt" in selected_methods
+)
+st.session_state["_proc_sketch_selected"] = (
+    "Process 2 — Sketch → Photoreal" in selected_methods
+)
 prefer_rewritten = st.sidebar.checkbox("Use rewritten prompt (0_Prompts)", value=True)
 mask_feather = st.sidebar.slider(
     "Mask feather (for Sketch→Photo)", min_value=0, max_value=32, value=6
@@ -285,49 +300,50 @@ for item in items:
     sp_dirs = _list_runs_for(item.stem, "simple_prompt")[-int(shots_per_process) :]
     s2_dirs = _list_runs_for(item.stem, "sketch_to_photo")[-int(shots_per_process) :]
 
-    # Display 4 comparisons for process 1
-    st.markdown("#### Process 1 — Simple Prompt")
-    if not sp_dirs:
-        st.info("No runs yet for Simple Prompt; click the 'Generate missing' button above.")
-    else:
-        row_cols = st.columns(len(sp_dirs))
-        for col, d in zip(row_cols, sp_dirs):
-            with col:
-                pre, fin = _load_images_from_run_dir(d)
-                if pre is not None and fin is not None:
-                    show_comparison(
-                        pre,
-                        fin,
-                        label1="Before repaste",
-                        label2="After repaste",
-                        key=f"cmp_run_sp_{item.stem}_{d.name}",
-                    )
-                elif fin is not None:
-                    st.image(fin, caption="After repaste", use_container_width=True)
-                else:
-                    st.empty()
+    # Display for selected processes only
+    if st.session_state.get("_proc_simple_selected", True):
+        st.markdown("#### Process 1 — Simple Prompt")
+        if not sp_dirs:
+            st.info("No runs yet for Simple Prompt; click the 'Generate missing' button above.")
+        else:
+            row_cols = st.columns(len(sp_dirs))
+            for col, d in zip(row_cols, sp_dirs):
+                with col:
+                    pre, fin = _load_images_from_run_dir(d)
+                    if pre is not None and fin is not None:
+                        show_comparison(
+                            pre,
+                            fin,
+                            label1="Before repaste",
+                            label2="After repaste",
+                            key=f"cmp_run_sp_{item.stem}_{d.name}",
+                        )
+                    elif fin is not None:
+                        st.image(fin, caption="After repaste", use_container_width=True)
+                    else:
+                        st.empty()
 
-    # Display 4 comparisons for process 2
-    st.markdown("#### Process 2 — Sketch → Photoreal")
-    if not s2_dirs:
-        st.info("No runs yet for Sketch→Photo; click the 'Generate missing' button above.")
-    else:
-        row_cols = st.columns(len(s2_dirs))
-        for col, d in zip(row_cols, s2_dirs):
-            with col:
-                pre, fin = _load_images_from_run_dir(d)
-                if pre is not None and fin is not None:
-                    show_comparison(
-                        pre,
-                        fin,
-                        label1="Before repaste",
-                        label2="After repaste",
-                        key=f"cmp_run_s2_{item.stem}_{d.name}",
-                    )
-                elif fin is not None:
-                    st.image(fin, caption="After repaste", use_container_width=True)
-                else:
-                    st.empty()
+    if st.session_state.get("_proc_sketch_selected", True):
+        st.markdown("#### Process 2 — Sketch → Photoreal")
+        if not s2_dirs:
+            st.info("No runs yet for Sketch→Photo; click the 'Generate missing' button above.")
+        else:
+            row_cols = st.columns(len(s2_dirs))
+            for col, d in zip(row_cols, s2_dirs):
+                with col:
+                    pre, fin = _load_images_from_run_dir(d)
+                    if pre is not None and fin is not None:
+                        show_comparison(
+                            pre,
+                            fin,
+                            label1="Before repaste",
+                            label2="After repaste",
+                            key=f"cmp_run_s2_{item.stem}_{d.name}",
+                        )
+                    elif fin is not None:
+                        st.image(fin, caption="After repaste", use_container_width=True)
+                    else:
+                        st.empty()
 
     st.divider()
     st.markdown("## Next packshot")
