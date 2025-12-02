@@ -31,6 +31,13 @@ Quickstart
 poetry install
 ```
 
+2.1) Install ai_project dependency
+```bash
+git clone git@github.com:presti-ai/ai_projects.git
+```
+
+
+
 3) Configure credentials
 Set `GOOGLE_API_KEY` in your environment or in a `.env` file at the project root:
 ```

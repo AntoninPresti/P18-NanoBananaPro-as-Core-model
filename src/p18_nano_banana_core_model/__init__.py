@@ -4,6 +4,7 @@ from .processes import (
     run_simple_prompt,
     run_masked_outpaint,
     run_sketch_to_photo,
+    run_custom_emptyroom_adapt,
 )
 
 __all__ = [
@@ -13,4 +14,5 @@ __all__ = [
     "run_simple_prompt",
     "run_masked_outpaint",
     "run_sketch_to_photo",
+    "run_custom_emptyroom_adapt",
 ]
