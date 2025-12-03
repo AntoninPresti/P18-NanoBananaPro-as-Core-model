@@ -43,6 +43,9 @@ def show_comparison(img1, img2, *, label1: str, label2: str, key: str):
 RUNS_ROOT = Path("data/NBpro_TrainSet/runs")
 RUNS_ROOT.mkdir(parents=True, exist_ok=True)
 
+# Absolute target directory to save the final (after repaste) image with the packshot re-pasted
+SAVE_TARGET_DIR = Path("data/NBpro_TrainSet/1_NBpro generations")
+
 st.set_page_config(page_title="10) Movement Detection Run", layout="wide")
 st.title("10) Movement Detection — Multi-run Orchestrator")
 
@@ -82,6 +85,16 @@ def _load_images_from_run_dir(
     pre_img = Image.open(pre).convert("RGBA") if pre.exists() else None
     fin_img = Image.open(fin).convert("RGBA") if fin.exists() else None
     return pre_img, fin_img
+
+
+def _save_final_to_original_generations(stem: str, img: Image.Image) -> Path:
+    """Save the provided final image to the fixed folder, with filename <stem>.png, overwriting if exists."""
+    SAVE_TARGET_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = SAVE_TARGET_DIR / f"{stem}.png"
+    # Ensure PNG and RGBA
+    img_rgba = img.convert("RGBA")
+    img_rgba.save(out_path, format="PNG")
+    return out_path
 
 
 def _ensure_n_results_for_item(
@@ -349,8 +362,30 @@ for item in items:
                             label2="After repaste",
                             key=f"cmp_run_sp_{item.stem}_{d.name}",
                         )
+                        if st.button(
+                            "Save this final to Original generations",
+                            key=f"save_sp_{item.stem}_{d.name}",
+                        ):
+                            try:
+                                out_path = _save_final_to_original_generations(
+                                    item.stem, fin
+                                )
+                                st.success(f"Saved to: {out_path}")
+                            except Exception as e:
+                                st.error(f"Save failed: {e}")
                     elif fin is not None:
                         st.image(fin, caption="After repaste", use_container_width=True)
+                        if st.button(
+                            "Save this final to Original generations",
+                            key=f"save_sp_{item.stem}_{d.name}_no_pre",
+                        ):
+                            try:
+                                out_path = _save_final_to_original_generations(
+                                    item.stem, fin
+                                )
+                                st.success(f"Saved to: {out_path}")
+                            except Exception as e:
+                                st.error(f"Save failed: {e}")
                     else:
                         st.empty()
 
@@ -373,8 +408,31 @@ for item in items:
                             label2="After repaste",
                             key=f"cmp_run_s2_{item.stem}_{d.name}",
                         )
+                        if st.button(
+                            "Save this final to Original generations",
+                            key=f"save_s2_{item.stem}_{d.name}",
+                        ):
+                            try:
+                                out_path = _save_final_to_original_generations(
+                                    item.stem, fin
+                                )
+                                st.success(f"Saved to: {out_path}")
+                            except Exception as e:
+                                st.error(f"Save failed: {e}")
                     elif fin is not None:
                         st.image(fin, caption="After repaste", use_container_width=True)
+                        if st.button(
+                            "Save this final to Original generations",
+                            key=f"save_s2_{item.stem}_{d.name}_no_pre",
+                        ):
+                            try:
+                                out_path = _save_final_to_original_generations(
+                                    item.stem, fin
+                                )
+
+                                st.success(f"Saved to: {out_path}")
+                            except Exception as e:
+                                st.error(f"Save failed: {e}")
                     else:
                         st.empty()
 
